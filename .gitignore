@@ -1,0 +1,45 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Model weights & binaries (large files)
+models/*.keras
+models/*.h5
+models/*.pt
+models/*.pth
+models/*.onnx
+
+# Data directories (large datasets)
+data/
+data_split/
+pest_dataset/
+reports/
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+
+# Logs
+*.log
+
+# Backup files
+*.bak
+*.backup

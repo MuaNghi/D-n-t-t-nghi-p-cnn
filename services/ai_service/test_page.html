@@ -1,0 +1,568 @@
+﻿
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LúaAI - Nhận diện bệnh và sâu hại lúa</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px 16px;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f3f7f0;
+            color: #26352b;
+        }
+
+        .container {
+            max-width: 1050px;
+            margin: auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        header h1 {
+            color: #246b3b;
+            margin-bottom: 8px;
+            font-size: 30px;
+        }
+
+        header p {
+            color: #6b796e;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .mode-switch {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .mode-button {
+            border: 2px solid #2f7d46;
+            border-radius: 10px;
+            padding: 12px 24px;
+            background: white;
+            color: #2f7d46;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .mode-button.active {
+            background: #2f7d46;
+            color: white;
+        }
+
+        .mode-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .main-card {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 5px 22px rgba(35, 70, 40, 0.08);
+        }
+
+        .panel h2 {
+            margin-top: 0;
+            color: #286b3d;
+            font-size: 20px;
+        }
+
+        .upload-area {
+            display: block;
+            width: 100%;
+            border: 2px dashed #9cbea0;
+            border-radius: 12px;
+            padding: 25px 15px;
+            text-align: center;
+            background: #f8fbf6;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            background: #eff7ed;
+        }
+
+        .upload-icon {
+            font-size: 42px;
+            margin-bottom: 10px;
+        }
+
+        .upload-area p {
+            color: #647467;
+            line-height: 1.5;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .preview {
+            width: 100%;
+            max-height: 320px;
+            object-fit: contain;
+            border-radius: 10px;
+            margin-top: 18px;
+            display: none;
+            background: #f3f5f2;
+        }
+
+        .action-button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 18px;
+            border: none;
+            border-radius: 9px;
+            background: #2f7d46;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .action-button:hover {
+            background: #246638;
+        }
+
+        .action-button:disabled {
+            background: #aab8ac;
+            cursor: not-allowed;
+        }
+
+        .result-box {
+            min-height: 300px;
+            border-radius: 12px;
+            padding: 20px;
+            background: #f8fbf6;
+        }
+
+        .empty-result {
+            min-height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #89958b;
+            line-height: 1.6;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 10px;
+            color: #2f7d46;
+            font-weight: bold;
+        }
+
+        .result-label {
+            color: #758176;
+            font-size: 14px;
+            margin-bottom: 7px;
+        }
+
+        .predicted-name {
+            font-size: 23px;
+            color: #246b3b;
+            font-weight: bold;
+            margin-bottom: 20px;
+            overflow-wrap: anywhere;
+        }
+
+        .confidence {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2f7d46;
+            margin-bottom: 22px;
+        }
+
+        .probability-item {
+            margin-bottom: 15px;
+        }
+
+        .probability-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .probability-name {
+            overflow-wrap: anywhere;
+        }
+
+        .progress-track {
+            height: 9px;
+            background: #e3eae2;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4d9b5e;
+            border-radius: 10px;
+        }
+
+        .error {
+            color: #b42318;
+            background: #fff0ee;
+            padding: 14px;
+            border-radius: 8px;
+            line-height: 1.5;
+        }
+
+        .notice {
+            margin-top: 20px;
+            text-align: center;
+            color: #758176;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 700px) {
+            body {
+                padding: 20px 12px;
+            }
+
+            .main-card {
+                grid-template-columns: 1fr;
+                padding: 17px;
+            }
+
+            header h1 {
+                font-size: 24px;
+            }
+
+            .mode-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>🌾 LúaAI - Trợ lý nhận diện cây lúa</h1>
+        <p>Ứng dụng trí tuệ nhân tạo hỗ trợ nhận diện bệnh và sâu hại trên cây lúa.</p>
+    </header>
+
+    <div class="mode-switch">
+        <button type="button" id="diseaseMode" class="mode-button active">
+            🌿 Nhận diện bệnh lúa
+        </button>
+        <button type="button" id="pestMode" class="mode-button">
+            🐛 Nhận diện sâu hại
+        </button>
+    </div>
+
+    <div class="main-card">
+        <section class="panel">
+            <h2 id="uploadTitle">📷 Tải ảnh lá lúa</h2>
+
+            <label class="upload-area" for="fileInput">
+                <div class="upload-icon">📁</div>
+                <strong>Nhấn để chọn ảnh</strong>
+                <p id="uploadDescription">
+                    Chọn ảnh lá lúa cần kiểm tra bệnh.
+                    Hỗ trợ JPG, PNG, WEBP.
+                </p>
+            </label>
+
+            <input
+                type="file"
+                id="fileInput"
+                accept="image/jpeg,image/png,image/webp"
+            >
+
+            <img id="preview" class="preview" alt="Ảnh xem trước">
+
+            <button id="predictButton" class="action-button" disabled>
+                🔍 Nhận diện bệnh lúa
+            </button>
+        </section>
+
+        <section class="panel">
+            <h2>📊 Kết quả nhận diện</h2>
+
+            <div class="result-box">
+                <div id="resultEmpty" class="empty-result">
+                    Kết quả nhận diện sẽ hiển thị tại đây sau khi bạn tải ảnh lên và nhấn nút nhận diện.
+                </div>
+
+                <div id="resultLoading" class="loading" hidden>
+                    Đang phân tích ảnh bằng trí tuệ nhân tạo...
+                </div>
+
+                <div id="resultError" hidden></div>
+
+                <div id="resultContent" hidden>
+                    <div class="result-label" id="resultLabel">
+                        Kết quả dự đoán
+                    </div>
+
+                    <div class="predicted-name" id="diseaseName"></div>
+
+                    <div class="result-label">Độ tin cậy</div>
+                    <div class="confidence" id="confidence"></div>
+
+                    <div class="result-label">Xác suất các lớp nhận diện</div>
+                    <div id="probabilities"></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <p class="notice">
+        LúaAI sử dụng mô hình học sâu để hỗ trợ nhận diện.
+        Kết quả mang tính chất tham khảo, cần kết hợp kiểm tra thực tế đồng ruộng.
+    </p>
+</div>
+
+<script>
+    const API_ENDPOINTS = {
+        disease: "/predict",
+        pest: "/predict/pest"
+    };
+
+    const DISEASE_CLASSES = {
+        "Healthy": "Lúa khỏe mạnh",
+        "bacterial_leaf_blight": "Bệnh bạc lá",
+        "brown_spot": "Bệnh đốm nâu",
+        "leaf_blast": "Bệnh đạo ôn lá",
+        "leaf_scald": "Bệnh cháy bìa lá",
+        "narrow_brown_spot": "Bệnh đốm sọc nâu",
+        "neck_blast": "Bệnh đạo ôn cổ bông",
+        "rice_hispa": "Sâu gai hại lúa",
+        "sheath_blight": "Bệnh khô vằn",
+        "tungro": "Bệnh vàng lùn, lùn xoắn lá"
+    };
+
+    const PEST_CLASSES = {
+        "Brown Planthopper": "Rầy nâu",
+        "Green Leafhoppers": "Rầy xanh",
+        "Leaf Folders": "Sâu cuốn lá",
+        "Rice Bug": "Bọ xít hại lúa",
+        "Stem Borer": "Sâu đục thân",
+        "Whorl-Maggot": "Sâu năn (muỗi hành)"
+    };
+
+    let currentMode = "disease";
+    let selectedFile = null;
+
+    const fileInput = document.getElementById("fileInput");
+    const preview = document.getElementById("preview");
+    const predictButton = document.getElementById("predictButton");
+
+    const diseaseMode = document.getElementById("diseaseMode");
+    const pestMode = document.getElementById("pestMode");
+
+    const resultEmpty = document.getElementById("resultEmpty");
+    const resultLoading = document.getElementById("resultLoading");
+    const resultError = document.getElementById("resultError");
+    const resultContent = document.getElementById("resultContent");
+
+    function getClassName(className) {
+        const dictionary = currentMode === "disease"
+            ? DISEASE_CLASSES
+            : PEST_CLASSES;
+
+        return dictionary[className] || className;
+    }
+
+    function resetResult() {
+        resultEmpty.hidden = false;
+        resultLoading.hidden = true;
+        resultError.hidden = true;
+        resultContent.hidden = true;
+        resultError.textContent = "";
+    }
+
+    function switchMode(mode) {
+        currentMode = mode;
+
+        diseaseMode.classList.toggle("active", mode === "disease");
+        pestMode.classList.toggle("active", mode === "pest");
+
+        document.getElementById("uploadTitle").textContent =
+            mode === "disease" ? "📷 Tải ảnh lá lúa" : "🐛 Tải ảnh sâu hại lúa";
+
+        document.getElementById("uploadDescription").textContent =
+            mode === "disease"
+                ? "Chọn ảnh lá lúa cần kiểm tra bệnh. Hỗ trợ JPG, PNG, WEBP."
+                : "Chọn ảnh sâu hại cần nhận diện. Hỗ trợ JPG, PNG, WEBP.";
+
+        predictButton.textContent =
+            mode === "disease"
+                ? "🔍 Nhận diện bệnh lúa"
+                : "🐛 Nhận diện sâu hại";
+
+        document.getElementById("resultLabel").textContent =
+            mode === "disease"
+                ? "Bệnh được dự đoán"
+                : "Sâu hại được dự đoán";
+
+        selectedFile = null;
+        fileInput.value = "";
+        preview.src = "";
+        preview.style.display = "none";
+        predictButton.disabled = true;
+
+        resetResult();
+    }
+
+    diseaseMode.addEventListener("click", () => switchMode("disease"));
+    pestMode.addEventListener("click", () => switchMode("pest"));
+
+    fileInput.addEventListener("change", function () {
+        const file = this.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        const allowedTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+        ];
+
+        if (!allowedTypes.includes(file.type)) {
+            alert("Vui lòng chọn ảnh JPG, PNG hoặc WEBP.");
+            fileInput.value = "";
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert("Kích thước ảnh không được vượt quá 10 MB.");
+            fileInput.value = "";
+            return;
+        }
+
+        selectedFile = file;
+
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = "block";
+
+        predictButton.disabled = false;
+        resetResult();
+    });
+
+    predictButton.addEventListener("click", async function () {
+        if (!selectedFile) {
+            alert("Vui lòng chọn ảnh trước khi nhận diện.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+
+        resultEmpty.hidden = true;
+        resultError.hidden = true;
+        resultContent.hidden = true;
+        resultLoading.hidden = false;
+
+        predictButton.disabled = true;
+
+        try {
+            const response = await fetch(API_ENDPOINTS[currentMode], {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.detail || "Không thể thực hiện nhận diện."
+                );
+            }
+
+            if (!data.success) {
+                throw new Error("Mô hình không trả về kết quả hợp lệ.");
+            }
+
+            document.getElementById("diseaseName").textContent =
+                getClassName(data.predicted_class);
+
+            document.getElementById("confidence").textContent =
+                Number(data.confidence).toFixed(2) + "%";
+
+            const probabilitiesElement =
+                document.getElementById("probabilities");
+
+            probabilitiesElement.innerHTML = "";
+
+            const sortedProbabilities = Object.entries(data.probabilities)
+                .sort((a, b) => b[1] - a[1]);
+
+            for (const [className, probability] of sortedProbabilities) {
+                const item = document.createElement("div");
+                item.className = "probability-item";
+
+                const header = document.createElement("div");
+                header.className = "probability-header";
+
+                const name = document.createElement("span");
+                name.className = "probability-name";
+                name.textContent = getClassName(className);
+
+                const value = document.createElement("strong");
+                value.textContent = Number(probability).toFixed(2) + "%";
+
+                header.appendChild(name);
+                header.appendChild(value);
+
+                const track = document.createElement("div");
+                track.className = "progress-track";
+
+                const fill = document.createElement("div");
+                fill.className = "progress-fill";
+                fill.style.width = Math.max(
+                    0,
+                    Math.min(100, Number(probability))
+                ) + "%";
+
+                track.appendChild(fill);
+                item.appendChild(header);
+                item.appendChild(track);
+
+                probabilitiesElement.appendChild(item);
+            }
+
+            resultLoading.hidden = true;
+            resultContent.hidden = false;
+
+        } catch (error) {
+            resultLoading.hidden = true;
+            resultError.hidden = false;
+
+            const errorBox = document.createElement("div");
+            errorBox.className = "error";
+            errorBox.textContent = "Lỗi: " + error.message;
+
+            resultError.replaceChildren(errorBox);
+
+        } finally {
+            predictButton.disabled = !selectedFile;
+        }
+    });
+</script>
+</body>
+</html>
